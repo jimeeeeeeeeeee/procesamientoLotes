@@ -1,6 +1,6 @@
 import pygame
 
-# Colores Retro
+# Colores
 COLOR_TEXTO_BLANCO = (255, 255, 255)
 COLOR_TEXTO_OSCURO = (0, 0, 0)
 COLOR_CAJAS = (200, 76, 12)
@@ -19,7 +19,7 @@ class InputBox:
         self.texto = texto
         self.txt_surface = fuente_etiquetas.render(texto, True, self.color_texto)
         self.activo = False
-        self.solo_numeros = solo_numeros # Bandera para validar entradas numéricas
+        self.solo_numeros = solo_numeros # Bandera para validar entradas numericas
 
     def manejar_evento(self, evento):
         if evento.type == pygame.MOUSEBUTTONDOWN:
