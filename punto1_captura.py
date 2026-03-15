@@ -7,39 +7,36 @@ COLOR_BORDES = (0, 0, 0)
 COLOR_BOTON = (0, 168, 0)
 COLOR_ERROR = (228, 0, 88)
 
-def dibujar_columna_captura(pantalla, fuente_titulo, fuente_etiquetas, fuente_pequena, cajas, menu_operador, procesos_capturados, mensaje_error, ALTO):
-    titulo = fuente_titulo.render("CAPTURAR PROCESOS", True, COLOR_TEXTO)
+def dibujar_columna_captura(pantalla, fuente_titulo, fuente_etiquetas, fuente_pequena, caja_cantidad, procesos_capturados, mensaje_error, ALTO):
+    titulo = fuente_titulo.render("DATOS INICIALES", True, COLOR_TEXTO)
     pantalla.blit(titulo, (60, 20))
 
-    pantalla.blit(fuente_etiquetas.render("Nombre", True, COLOR_TEXTO_BLANCO), (15, 85))
-    cajas[0].dibujar(pantalla) # caja_nombre
+    # Única entrada requerida [cite: 6, 8]
+    pantalla.blit(fuente_etiquetas.render("Número de Procesos:", True, COLOR_TEXTO_BLANCO), (15, 85))
+    caja_cantidad.dibujar(pantalla)
 
-    pantalla.blit(fuente_etiquetas.render("Operación", True, COLOR_TEXTO_BLANCO), (15, 145))
-    cajas[1].dibujar(pantalla) # caja_num1
-    menu_operador.dibujar(pantalla)
-    cajas[2].dibujar(pantalla) # caja_num2
+    btn_generar = pygame.Rect(40, 150, 100, 40)
+    pygame.draw.rect(pantalla, COLOR_BOTON, btn_generar)
+    pygame.draw.rect(pantalla, COLOR_BORDES, btn_generar, 3)
+    pantalla.blit(fuente_etiquetas.render("GENERAR", True, COLOR_TEXTO_BLANCO), (55, 160))
 
-    pantalla.blit(fuente_etiquetas.render("Tiempo(TME)", True, COLOR_TEXTO_BLANCO), (15, 205))
-    cajas[3].dibujar(pantalla) # caja_tme
-
-    pantalla.blit(fuente_etiquetas.render("ID", True, COLOR_TEXTO_BLANCO), (15, 265))
-    cajas[4].dibujar(pantalla) # caja_id
-
-    btn_agregar = pygame.Rect(40, 350, 100, 40)
-    pygame.draw.rect(pantalla, COLOR_BOTON, btn_agregar)
-    pygame.draw.rect(pantalla, COLOR_BORDES, btn_agregar, 3)
-    pantalla.blit(fuente_etiquetas.render("AGREGAR", True, COLOR_TEXTO_BLANCO), (55, 360))
-
-    btn_ejecutar = pygame.Rect(170, 350, 110, 40)
+    btn_ejecutar = pygame.Rect(170, 150, 110, 40)
     pygame.draw.rect(pantalla, COLOR_BOTON, btn_ejecutar)
     pygame.draw.rect(pantalla, COLOR_BORDES, btn_ejecutar, 3)
-    pantalla.blit(fuente_etiquetas.render("EJECUTAR", True, COLOR_TEXTO_BLANCO), (180, 360))
+    pantalla.blit(fuente_etiquetas.render("EJECUTAR", True, COLOR_TEXTO_BLANCO), (180, 160))
 
-    lbl_contador = fuente_etiquetas.render(f"AGREGADOS: {len(procesos_capturados)}", True, COLOR_TEXTO_BLANCO)
-    pantalla.blit(lbl_contador, (100, 420))
+    lbl_contador = fuente_etiquetas.render(f"GENERADOS: {len(procesos_capturados)}", True, COLOR_TEXTO_BLANCO)
+    pantalla.blit(lbl_contador, (100, 220))
     if mensaje_error:
         lbl_err = fuente_pequena.render(mensaje_error, True, COLOR_ERROR)
-        pantalla.blit(lbl_err, (20, 450))
+        pantalla.blit(lbl_err, (20, 250))
+
+    # Controles de teclas
+    y_inst = 350
+    pantalla.blit(fuente_etiquetas.render("CONTROLES DE TECLADO:", True, COLOR_TEXTO_BLANCO), (15, y_inst))
+    pantalla.blit(fuente_pequena.render("[I] Interrupción por E/S", True, COLOR_TEXTO_BLANCO), (15, y_inst + 25))
+    pantalla.blit(fuente_pequena.render("[E] Error", True, COLOR_TEXTO_BLANCO), (15, y_inst + 50))
+    pantalla.blit(fuente_pequena.render("[P] Pausa", True, COLOR_TEXTO_BLANCO), (15, y_inst + 75))
+    pantalla.blit(fuente_pequena.render("[C] Continuar", True, COLOR_TEXTO_BLANCO), (15, y_inst + 100))
 
     pygame.draw.line(pantalla, COLOR_BORDES, (330, 0), (330, ALTO), 4)
-    menu_operador.dibujar_opciones(pantalla)

@@ -78,7 +78,7 @@ class MenuDesplegable:
         txt_surface = fuente_etiquetas.render(self.seleccionado, True, color_texto)
         pantalla.blit(txt_surface, (self.rect_principal.x + 5, self.rect_principal.y + 5))
 
-        # Dibujar la flechita (indicador visual)
+        # Dibujar la flechita
         pygame.draw.polygon(pantalla, COLOR_BORDES, [
             (self.rect_principal.right - 15, self.rect_principal.centery - 2),
             (self.rect_principal.right - 5, self.rect_principal.centery - 2),
