@@ -52,7 +52,7 @@ def dibujar_columna_ejecucion(pantalla, fuente_titulo, fuente_etiquetas, fuente_
     pygame.draw.line(pantalla, COLOR_BORDES, (730, 0), (730, ALTO), 4)
 
 def dibujar_columna_terminados(pantalla, fuente_titulo, fuente_etiquetas, fuente_pequena, procesos_terminados, reloj_global):
-    titulo_final = fuente_titulo.render("TRABAJOS TERMINADOS", True, COLOR_TEXTO)
+    titulo_final = fuente_titulo.render("PROCESOS TERMINADOS", True, COLOR_TEXTO)
     pantalla.blit(titulo_final, (780, 25))
     fondo_term = pygame.Rect(750, 60, 330, 480)
     pygame.draw.rect(pantalla, COLOR_CAJAS, fondo_term)

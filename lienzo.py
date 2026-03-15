@@ -155,7 +155,7 @@ def main():
             fondo_pausa = pygame.Rect(450, 300, 200, 50)
             pygame.draw.rect(pantalla, COLOR_CAJAS_ACTIVAS, fondo_pausa)
             pygame.draw.rect(pantalla, COLOR_BORDES, fondo_pausa, 3)
-            pantalla.blit(fuente_titulo.render(" SIMULACIÓN PAUSADA ", True, COLOR_TEXTO_OSCURO), (455, 315))
+            pantalla.blit(fuente_titulo.render(" SIM. PAUSADA ", True, COLOR_TEXTO_OSCURO), (455, 315))
 
         if estado == "TERMINADO":
             fondo_fin = pygame.Rect(350, 600, 300, 40)
