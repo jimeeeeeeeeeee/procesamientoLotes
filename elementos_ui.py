@@ -59,7 +59,6 @@ class MenuDesplegable:
             if self.rect_principal.collidepoint(evento.pos):
                 self.desplegado = not self.desplegado
             elif self.desplegado:
-                # Revisar si hizo clic en alguna opción desplegada
                 for i, opcion in enumerate(self.opciones):
                     rect_opcion = pygame.Rect(self.rect_principal.x, self.rect_principal.y + (i + 1) * self.rect_principal.height, self.rect_principal.width, self.rect_principal.height)
                     if rect_opcion.collidepoint(evento.pos):
@@ -67,7 +66,7 @@ class MenuDesplegable:
                         self.desplegado = False
                         break
                 else:
-                    self.desplegado = False # Cerrar si hace clic afuera
+                    self.desplegado = False
 
     def dibujar(self, pantalla):
         # Dibujar caja principal
@@ -86,7 +85,6 @@ class MenuDesplegable:
         ])
 
     def dibujar_opciones(self, pantalla):
-        """Se dibuja al final para que quede por encima de los demás elementos."""
         if self.desplegado:
             for i, opcion in enumerate(self.opciones):
                 rect_opcion = pygame.Rect(self.rect_principal.x, self.rect_principal.y + (i + 1) * self.rect_principal.height, self.rect_principal.width, self.rect_principal.height)
@@ -96,9 +94,7 @@ class MenuDesplegable:
                 txt_opcion = fuente_etiquetas.render(opcion, True, COLOR_TEXTO_OSCURO)
                 pantalla.blit(txt_opcion, (rect_opcion.x + 5, rect_opcion.y + 5))
 
-# --- LÓGICA DE VALIDACIÓN ---
 def validar_operacion(num1_str, operador, num2_str):
-    """Retorna (EsValido, MensajeError) validando matemáticamente la operación."""
     if not num1_str or not num2_str:
         return False, "FALTAN NÚMEROS"
     
