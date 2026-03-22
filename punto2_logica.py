@@ -10,11 +10,24 @@ class Proceso:
         self.tiempo_restante = self.tme
         self.resultado = None
 
+        #5 estados
+        self.tiempo_bloqueado = 0
+        self.t_llegada = 0
+        self.t_finalizacion = 0
+        self.t_respuesta = -1
+        self.t_servicio = 0
+        self.t_retorno = 0
+        self.t_espera = 0
+
     def ejecutar(self):
         try:
             self.resultado = eval(self.operacion_eval)
         except Exception:
             self.resultado = "Error"
+
+    def calcular_tiempos(self):
+        self.t_retorno = self.t_finalizacion - self.t_llegada
+        self.t_espera = self.t_retorno - self.t_servicio
 
 
 def generar_procesos_aleatorios(cantidad, id_inicial=1):

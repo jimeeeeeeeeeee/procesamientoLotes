@@ -9,7 +9,7 @@ from punto3_visualizacion import dibujar_columna_ejecucion, dibujar_columna_term
 pygame.init()
 ANCHO, ALTO = 1100, 650
 pantalla = pygame.display.set_mode((ANCHO, ALTO))
-pygame.display.set_caption("Simulación de Multiprogramación por Lotes")
+pygame.display.set_caption("Simulación FCFS")
 
 # Colores
 COLOR_FONDO = (92, 148, 252)
@@ -22,17 +22,17 @@ fuente_etiquetas = pygame.font.SysFont("couriernew", 16, bold=True)
 fuente_pequena = pygame.font.SysFont("couriernew", 14, bold=True)
 
 # Variables globales
-estado = "CAPTURA"  # Estados: CAPTURA, EJECUCION, PAUSA, TERMINADO
+estado = "CAPTURA"
 procesos_capturados = []
-lotes_pendientes = []
-lote_actual = []
+cola_nuevos = []
+cola_listos = []
+cola_bloqueados = []
 procesos_terminados = []
 proceso_en_ejecucion = None
 
 reloj_global = 0
 ultimo_tick = 0
 mensaje_error = ""
-lotes_procesados_contador = 0
 id_consecutivo = 1
 
 # Interfaz
@@ -62,21 +62,18 @@ def generar_procesos():
 
 
 def iniciar_ejecucion():
-    global estado, lotes_pendientes, ultimo_tick, mensaje_error
+    global estado, cola_nuevos, ultimo_tick, mensaje_error
     if len(procesos_capturados) == 0:
         mensaje_error = "GENERA PRIMERO."
         return
 
-    # LOTES DE 3 EN 3
-    for i in range(0, len(procesos_capturados), 3):
-        lotes_pendientes.append(procesos_capturados[i:i + 3])
-
+    cola_nuevos = procesos_capturados.copy()
     estado = "EJECUCION"
     ultimo_tick = pygame.time.get_ticks()
 
 
 def main():
-    global estado, lote_actual, lotes_pendientes, proceso_en_ejecucion, reloj_global, ultimo_tick, lotes_procesados_contador
+    global estado, proceso_en_ejecucion, reloj_global, ultimo_tick
 
     reloj = pygame.time.Clock()
     corriendo = True
@@ -93,75 +90,97 @@ def main():
 
             if estado == "CAPTURA":
                 caja_cantidad.manejar_evento(evento)
-
                 if evento.type == pygame.MOUSEBUTTONDOWN:
-                    if btn_generar_rect.collidepoint(evento.pos):
-                        generar_procesos()
-                    if btn_ejecutar_rect.collidepoint(evento.pos):
-                        iniciar_ejecucion()
+                    if btn_generar_rect.collidepoint(evento.pos): generar_procesos()
+                    if btn_ejecutar_rect.collidepoint(evento.pos): iniciar_ejecucion()
 
             elif estado in ["EJECUCION", "PAUSA"]:
                 if evento.type == pygame.KEYDOWN:
-                    # Controles de Pausa
                     if evento.key == pygame.K_p and estado == "EJECUCION":
                         estado = "PAUSA"
                     elif evento.key == pygame.K_c and estado == "PAUSA":
                         estado = "EJECUCION"
-                        ultimo_tick = pygame.time.get_ticks()
+                        ultimo_tick = pygame.time.get_ticks()  # Corrige el salto de tiempo
 
-                        # Interrupción y Error
                     if estado == "EJECUCION" and proceso_en_ejecucion:
                         if evento.key == pygame.K_i:
-                            lote_actual.append(proceso_en_ejecucion)
+                            proceso_en_ejecucion.tiempo_bloqueado = 0
+                            cola_bloqueados.append(proceso_en_ejecucion)
                             proceso_en_ejecucion = None
                         elif evento.key == pygame.K_e:
                             proceso_en_ejecucion.resultado = "ERROR"
-                            procesos_terminados.append((proceso_en_ejecucion, lotes_procesados_contador))
+                            proceso_en_ejecucion.t_finalizacion = reloj_global
+                            proceso_en_ejecucion.t_servicio = proceso_en_ejecucion.tiempo_transcurrido
+                            procesos_terminados.append(proceso_en_ejecucion)
                             proceso_en_ejecucion = None
 
         if estado == "EJECUCION":
             tiempo_actual = pygame.time.get_ticks()
 
-            if proceso_en_ejecucion is None:
-                if len(lote_actual) > 0:
-                    proceso_en_ejecucion = lote_actual.pop(0)
-                elif len(lotes_pendientes) > 0:
-                    lote_actual = lotes_pendientes.pop(0)
-                    lotes_procesados_contador += 1
-                else:
-                    estado = "TERMINADO"
+            # Administrador de Memoria
+            en_memoria = len(cola_listos) + len(cola_bloqueados) + (1 if proceso_en_ejecucion else 0)
+            while en_memoria < 3 and len(cola_nuevos) > 0:
+                p_nuevo = cola_nuevos.pop(0)
+                p_nuevo.t_llegada = reloj_global
+                cola_listos.append(p_nuevo)
+                en_memoria += 1
 
-            if proceso_en_ejecucion and (tiempo_actual - ultimo_tick >= 1000):
+            if tiempo_actual - ultimo_tick >= 1000:
                 ultimo_tick = tiempo_actual
                 reloj_global += 1
-                proceso_en_ejecucion.tiempo_transcurrido += 1
-                proceso_en_ejecucion.tiempo_restante -= 1
 
-                if proceso_en_ejecucion.tiempo_restante <= 0:
-                    proceso_en_ejecucion.ejecutar()
-                    procesos_terminados.append((proceso_en_ejecucion, lotes_procesados_contador))
-                    proceso_en_ejecucion = None
+                # Temporizador de la Cola de Bloqueados
+                procesos_a_desbloquear = 0
+                for p in cola_bloqueados:
+                    p.tiempo_bloqueado += 1
+                    if p.tiempo_bloqueado >= 10:
+                        procesos_a_desbloquear += 1
+
+                for _ in range(procesos_a_desbloquear):
+                    p_listo = cola_bloqueados.pop(0)
+                    p_listo.tiempo_bloqueado = 0
+                    cola_listos.append(p_listo)
+
+                # Procesador FCFS
+                if proceso_en_ejecucion is None and len(cola_listos) > 0:
+                    proceso_en_ejecucion = cola_listos.pop(0)
+                    if proceso_en_ejecucion.t_respuesta == -1:
+                        proceso_en_ejecucion.t_respuesta = reloj_global - proceso_en_ejecucion.t_llegada
+
+                if proceso_en_ejecucion:
+                    proceso_en_ejecucion.tiempo_transcurrido += 1
+                    proceso_en_ejecucion.tiempo_restante -= 1
+
+                    if proceso_en_ejecucion.tiempo_restante <= 0:
+                        proceso_en_ejecucion.ejecutar()
+                        proceso_en_ejecucion.t_finalizacion = reloj_global
+                        proceso_en_ejecucion.t_servicio = proceso_en_ejecucion.tiempo_transcurrido
+                        procesos_terminados.append(proceso_en_ejecucion)
+                        proceso_en_ejecucion = None
+
+                if len(cola_nuevos) == 0 and len(cola_listos) == 0 and not proceso_en_ejecucion and len(
+                        cola_bloqueados) == 0:
+                    estado = "REPORTE"
 
         pantalla.fill(COLOR_FONDO)
 
-        dibujar_columna_captura(pantalla, fuente_titulo, fuente_etiquetas, fuente_pequena, caja_cantidad,
-                                procesos_capturados, mensaje_error, ALTO)
-        dibujar_columna_ejecucion(pantalla, fuente_titulo, fuente_etiquetas, fuente_pequena, lote_actual,
-                                  lotes_pendientes, proceso_en_ejecucion, ALTO)
-        dibujar_columna_terminados(pantalla, fuente_titulo, fuente_etiquetas, fuente_pequena, procesos_terminados,
-                                   reloj_global)
+        if estado == "REPORTE":
+            from punto3_visualizacion import dibujar_reporte_final
+            dibujar_reporte_final(pantalla, fuente_titulo, fuente_pequena, procesos_terminados)
+        else:
+            dibujar_columna_captura(pantalla, fuente_titulo, fuente_etiquetas, fuente_pequena, caja_cantidad,
+                                    procesos_capturados, mensaje_error, ALTO)
+            # colas a visualización
+            dibujar_columna_ejecucion(pantalla, fuente_titulo, fuente_etiquetas, fuente_pequena, cola_listos,
+                                      cola_nuevos, cola_bloqueados, proceso_en_ejecucion, ALTO)
+            dibujar_columna_terminados(pantalla, fuente_titulo, fuente_etiquetas, fuente_pequena, procesos_terminados,
+                                       reloj_global)
 
-        if estado == "PAUSA":
-            fondo_pausa = pygame.Rect(450, 300, 200, 50)
-            pygame.draw.rect(pantalla, COLOR_CAJAS_ACTIVAS, fondo_pausa)
-            pygame.draw.rect(pantalla, COLOR_BORDES, fondo_pausa, 3)
-            pantalla.blit(fuente_titulo.render(" SIM. PAUSADA ", True, COLOR_TEXTO_OSCURO), (455, 315))
-
-        if estado == "TERMINADO":
-            fondo_fin = pygame.Rect(350, 600, 300, 40)
-            pygame.draw.rect(pantalla, COLOR_CAJAS_ACTIVAS, fondo_fin)
-            pygame.draw.rect(pantalla, COLOR_BORDES, fondo_fin, 3)
-            pantalla.blit(fuente_titulo.render(" FIN DE SIMULACIÓN ", True, COLOR_TEXTO_OSCURO), (400, 605))
+            if estado == "PAUSA":
+                fondo_pausa = pygame.Rect(450, 300, 200, 50)
+                pygame.draw.rect(pantalla, COLOR_CAJAS_ACTIVAS, fondo_pausa)
+                pygame.draw.rect(pantalla, COLOR_BORDES, fondo_pausa, 3)
+                pantalla.blit(fuente_titulo.render(" SIM. PAUSADA ", True, COLOR_TEXTO_OSCURO), (455, 315))
 
         pygame.display.flip()
         reloj.tick(60)
