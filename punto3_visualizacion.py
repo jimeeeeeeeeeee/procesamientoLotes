@@ -4,6 +4,39 @@ COLOR_TEXTO = (255, 255, 255)
 COLOR_TEXTO_BLANCO = (255, 255, 255)
 COLOR_CAJAS = (200, 76, 12)
 COLOR_BORDES = (0, 0, 0)
+COLOR_FONDO_TABLA = (40, 40, 80)
+
+def format_val(val):
+    return "Nulo" if val is None else str(val)
+
+
+def dibujar_tabla_bcp(pantalla, fuente_titulo, fuente_pequena, todos_los_procesos, reloj_global):
+    pantalla.fill(COLOR_FONDO_TABLA)
+    pantalla.blit(fuente_titulo.render(f"TABLA DE PROCESOS (BCP) - RELOJ: {reloj_global}", True, (255, 255, 0)),
+                  (20, 20))
+
+    encabezado = "ID | ESTADO   | OPER/RES   | LLEG | FIN | RET | RESPU | ESP | SERV | REST"
+    pantalla.blit(fuente_pequena.render(encabezado, True, (0, 255, 255)), (20, 60))
+    pygame.draw.line(pantalla, COLOR_TEXTO_BLANCO, (20, 80), (1080, 80), 2)
+
+    y = 90
+    for p in todos_los_procesos:
+        if y > 600: break
+        p.calcular_tiempos_bcp(reloj_global)
+
+        estado_mostrar = p.estado
+        if p.estado == "Bloqueado":
+            estado_mostrar = f"Bloq({9 - p.tiempo_bloqueado})"
+
+        oper_res = str(p.resultado) if p.estado == "Terminado" else p.operacion
+
+        fila = (f"{p.id:<3}| {estado_mostrar:<9}| {oper_res:<11}| "
+                f"{format_val(p.t_llegada):<5}| {format_val(p.t_finalizacion):<4}| "
+                f"{format_val(p.t_retorno):<4}| {format_val(p.t_respuesta):<6}| "
+                f"{format_val(p.t_espera):<4}| {format_val(p.t_servicio):<5}| {p.tiempo_restante:<4}")
+
+        pantalla.blit(fuente_pequena.render(fila, True, COLOR_TEXTO_BLANCO), (20, y))
+        y += 20
 
 
 def dibujar_columna_ejecucion(pantalla, fuente_titulo, fuente_etiquetas, fuente_pequena, cola_listos, cola_nuevos,
@@ -51,7 +84,6 @@ def dibujar_columna_ejecucion(pantalla, fuente_titulo, fuente_etiquetas, fuente_
         pantalla.blit(fuente_etiquetas.render(vals_proc[i], True, COLOR_TEXTO_BLANCO), (525, y_pos + 5))
         y_pos += 35
 
-    # Dibujar Bloqueados
     pantalla.blit(fuente_etiquetas.render(f"BLOQUEADOS ({len(cola_bloqueados)})", True, COLOR_TEXTO), (350, y_pos + 10))
     fondo_bloq = pygame.Rect(350, y_pos + 35, 350, 110)
     pygame.draw.rect(pantalla, COLOR_CAJAS, fondo_bloq)
@@ -61,7 +93,7 @@ def dibujar_columna_ejecucion(pantalla, fuente_titulo, fuente_etiquetas, fuente_
     y_bloq = y_pos + 60
     for p in cola_bloqueados:
         if y_bloq > y_pos + 120: break
-        pantalla.blit(fuente_pequena.render(f"{p.id:<8}{p.tiempo_bloqueado} / 10s", True, COLOR_TEXTO_BLANCO),
+        pantalla.blit(fuente_pequena.render(f"{p.id:<8}{p.tiempo_bloqueado} / 9s", True, COLOR_TEXTO_BLANCO),
                       (360, y_bloq))
         y_bloq += 20
 
