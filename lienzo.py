@@ -6,9 +6,10 @@ from punto1_captura import dibujar_columna_captura
 from punto3_visualizacion import dibujar_columna_ejecucion, dibujar_columna_terminados, dibujar_tabla_bcp
 
 pygame.init()
+
 ANCHO, ALTO = 1100, 650
 pantalla = pygame.display.set_mode((ANCHO, ALTO))
-pygame.display.set_caption("Simulación FCFS - Práctica 5")
+pygame.display.set_caption("Simulación Round Robin - Práctica 10")
 
 COLOR_FONDO = (92, 148, 252)
 COLOR_CAJAS_ACTIVAS = (248, 216, 32)
@@ -27,21 +28,32 @@ cola_listos = []
 cola_bloqueados = []
 procesos_terminados = []
 proceso_en_ejecucion = None
-
 reloj_global = 0
 ultimo_tick = 0
 mensaje_error = ""
 id_consecutivo = 1
 
 caja_cantidad = InputBox(200, 80, 80, 30, solo_numeros=True)
+# NUEVO: Caja y variables para el Quantum
+caja_quantum = InputBox(200, 120, 80, 30, solo_numeros=True)
+quantum_global = 0
+quantum_transcurrido = 0
+
 
 def generar_procesos():
-    global mensaje_error, procesos_capturados, procesos_totales, id_consecutivo
+    global mensaje_error, procesos_capturados, procesos_totales, id_consecutivo, quantum_global
     cant_str = caja_cantidad.texto.strip()
-    if not cant_str:
+    q_str = caja_quantum.texto.strip()
+
+    if not cant_str or not q_str:
+        mensaje_error = "FALTAN DATOS."
         return
+
     cant = int(cant_str)
-    if cant <= 0:
+    quantum_global = int(q_str)
+
+    if cant <= 0 or quantum_global <= 0:
+        mensaje_error = "DATOS INVÁLIDOS."
         return
 
     nuevos = generar_procesos_aleatorios(cant, id_consecutivo)
@@ -52,22 +64,30 @@ def generar_procesos():
     caja_cantidad.texto = ''
     caja_cantidad.txt_surface = fuente_etiquetas.render('', True, caja_cantidad.color_texto)
 
+
 def iniciar_ejecucion():
     global estado, cola_nuevos, ultimo_tick, mensaje_error
     if len(procesos_capturados) == 0:
         mensaje_error = "GENERA PRIMERO."
         return
+    if quantum_global <= 0:
+        mensaje_error = "DEFINE QUANTUM."
+        return
+
     cola_nuevos = procesos_capturados.copy()
     estado = "EJECUCION"
     ultimo_tick = pygame.time.get_ticks()
 
+
 def main():
     global estado, proceso_en_ejecucion, reloj_global, ultimo_tick, id_consecutivo
+    global quantum_transcurrido
 
     reloj = pygame.time.Clock()
     corriendo = True
-    btn_generar_rect = pygame.Rect(40, 150, 100, 40)
-    btn_ejecutar_rect = pygame.Rect(170, 150, 110, 40)
+
+    btn_generar_rect = pygame.Rect(40, 190, 100, 40)
+    btn_ejecutar_rect = pygame.Rect(170, 190, 110, 40)
 
     while corriendo:
         eventos = pygame.event.get()
@@ -77,6 +97,7 @@ def main():
 
             if estado == "CAPTURA":
                 caja_cantidad.manejar_evento(evento)
+                caja_quantum.manejar_evento(evento)  # Manejo de eventos del quantum
                 if evento.type == pygame.MOUSEBUTTONDOWN:
                     if btn_generar_rect.collidepoint(evento.pos): generar_procesos()
                     if btn_ejecutar_rect.collidepoint(evento.pos): iniciar_ejecucion()
@@ -90,7 +111,6 @@ def main():
                     elif evento.key == pygame.K_c and estado in ["PAUSA", "TABLA_BCP"]:
                         estado = "EJECUCION"
                         ultimo_tick = pygame.time.get_ticks()
-
                     elif evento.key == pygame.K_n and estado in ["EJECUCION", "PAUSA"]:
                         nuevo = generar_procesos_aleatorios(1, id_consecutivo)[0]
                         procesos_totales.append(nuevo)
@@ -98,23 +118,26 @@ def main():
                         id_consecutivo += 1
 
                     if estado == "EJECUCION" and proceso_en_ejecucion:
-                        if evento.key == pygame.K_e: # Interrupción
+                        if evento.key == pygame.K_e:
                             proceso_en_ejecucion.tiempo_bloqueado = 0
                             proceso_en_ejecucion.estado = "Bloqueado"
                             cola_bloqueados.append(proceso_en_ejecucion)
                             proceso_en_ejecucion = None
-                        elif evento.key == pygame.K_w: # Error
+                            quantum_transcurrido = 0
+
+                        elif evento.key == pygame.K_w:
                             proceso_en_ejecucion.resultado = "ERROR"
                             proceso_en_ejecucion.estado = "Terminado"
                             proceso_en_ejecucion.t_finalizacion = reloj_global
                             proceso_en_ejecucion.t_servicio = proceso_en_ejecucion.tiempo_transcurrido
                             procesos_terminados.append(proceso_en_ejecucion)
                             proceso_en_ejecucion = None
+                            quantum_transcurrido = 0
 
         if estado == "EJECUCION":
             tiempo_actual = pygame.time.get_ticks()
-
             en_memoria = len(cola_listos) + len(cola_bloqueados) + (1 if proceso_en_ejecucion else 0)
+
             while en_memoria < 3 and len(cola_nuevos) > 0:
                 p_nuevo = cola_nuevos.pop(0)
                 p_nuevo.estado = "Listo"
@@ -141,12 +164,14 @@ def main():
                 if proceso_en_ejecucion is None and len(cola_listos) > 0:
                     proceso_en_ejecucion = cola_listos.pop(0)
                     proceso_en_ejecucion.estado = "Ejecucion"
+                    quantum_transcurrido = 0
                     if proceso_en_ejecucion.t_respuesta is None:
                         proceso_en_ejecucion.t_respuesta = reloj_global - proceso_en_ejecucion.t_llegada
 
                 if proceso_en_ejecucion:
                     proceso_en_ejecucion.tiempo_transcurrido += 1
                     proceso_en_ejecucion.tiempo_restante -= 1
+                    quantum_transcurrido += 1
 
                     if proceso_en_ejecucion.tiempo_restante <= 0:
                         proceso_en_ejecucion.ejecutar()
@@ -155,8 +180,17 @@ def main():
                         proceso_en_ejecucion.t_servicio = proceso_en_ejecucion.tiempo_transcurrido
                         procesos_terminados.append(proceso_en_ejecucion)
                         proceso_en_ejecucion = None
+                        quantum_transcurrido = 0
 
-                if len(cola_nuevos) == 0 and len(cola_listos) == 0 and not proceso_en_ejecucion and len(cola_bloqueados) == 0:
+                    # ROUND ROBIN (ROTACIÓN) <---
+                    elif quantum_transcurrido >= quantum_global:
+                        proceso_en_ejecucion.estado = "Listo"
+                        cola_listos.append(proceso_en_ejecucion)  # Se forma al final
+                        proceso_en_ejecucion = None
+                        quantum_transcurrido = 0  # Reinicia para el que sigue
+
+                if len(cola_nuevos) == 0 and len(cola_listos) == 0 and not proceso_en_ejecucion and len(
+                        cola_bloqueados) == 0:
                     estado = "REPORTE"
 
         pantalla.fill(COLOR_FONDO)
@@ -164,11 +198,17 @@ def main():
         if estado == "REPORTE" or estado == "TABLA_BCP":
             dibujar_tabla_bcp(pantalla, fuente_titulo, fuente_pequena, procesos_totales, reloj_global)
             if estado == "TABLA_BCP":
-                pantalla.blit(fuente_titulo.render(" SIMULACION PAUSADA - PRESIONA 'C' PARA CONTINUAR ", True, COLOR_TEXTO_OSCURO), (100, 620))
+                pantalla.blit(fuente_titulo.render(" SIMULACION PAUSADA - PRESIONA 'C' PARA CONTINUAR ", True,
+                                                   COLOR_TEXTO_OSCURO), (100, 620))
         else:
-            dibujar_columna_captura(pantalla, fuente_titulo, fuente_etiquetas, fuente_pequena, caja_cantidad, procesos_capturados, mensaje_error, ALTO)
-            dibujar_columna_ejecucion(pantalla, fuente_titulo, fuente_etiquetas, fuente_pequena, cola_listos, cola_nuevos, cola_bloqueados, proceso_en_ejecucion, ALTO)
-            dibujar_columna_terminados(pantalla, fuente_titulo, fuente_etiquetas, fuente_pequena, procesos_terminados, reloj_global)
+
+            dibujar_columna_captura(pantalla, fuente_titulo, fuente_etiquetas, fuente_pequena, caja_cantidad,
+                                    caja_quantum, procesos_capturados, mensaje_error, ALTO)
+            dibujar_columna_ejecucion(pantalla, fuente_titulo, fuente_etiquetas, fuente_pequena, cola_listos,
+                                      cola_nuevos, cola_bloqueados, proceso_en_ejecucion, ALTO, quantum_global,
+                                      quantum_transcurrido)
+            dibujar_columna_terminados(pantalla, fuente_titulo, fuente_etiquetas, fuente_pequena, procesos_terminados,
+                                       reloj_global)
 
             if estado == "PAUSA":
                 fondo_pausa = pygame.Rect(450, 300, 200, 50)
@@ -181,6 +221,7 @@ def main():
 
     pygame.quit()
     sys.exit()
+
 
 if __name__ == "__main__":
     main()

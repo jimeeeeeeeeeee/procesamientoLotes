@@ -1,4 +1,5 @@
 import pygame
+
 # Colores
 COLOR_TEXTO = (255, 255, 255)
 COLOR_TEXTO_BLANCO = (255, 255, 255)
@@ -8,7 +9,6 @@ COLOR_FONDO_TABLA = (40, 40, 80)
 
 def format_val(val):
     return "Nulo" if val is None else str(val)
-
 
 def dibujar_tabla_bcp(pantalla, fuente_titulo, fuente_pequena, todos_los_procesos, reloj_global):
     pantalla.fill(COLOR_FONDO_TABLA)
@@ -23,13 +23,11 @@ def dibujar_tabla_bcp(pantalla, fuente_titulo, fuente_pequena, todos_los_proceso
     for p in todos_los_procesos:
         if y > 600: break
         p.calcular_tiempos_bcp(reloj_global)
-
         estado_mostrar = p.estado
         if p.estado == "Bloqueado":
             estado_mostrar = f"Bloq({9 - p.tiempo_bloqueado})"
 
         oper_res = str(p.resultado) if p.estado == "Terminado" else p.operacion
-
         fila = (f"{p.id:<3}| {estado_mostrar:<9}| {oper_res:<11}| "
                 f"{format_val(p.t_llegada):<5}| {format_val(p.t_finalizacion):<4}| "
                 f"{format_val(p.t_retorno):<4}| {format_val(p.t_respuesta):<6}| "
@@ -40,7 +38,7 @@ def dibujar_tabla_bcp(pantalla, fuente_titulo, fuente_pequena, todos_los_proceso
 
 
 def dibujar_columna_ejecucion(pantalla, fuente_titulo, fuente_etiquetas, fuente_pequena, cola_listos, cola_nuevos,
-                              cola_bloqueados, proceso_en_ejecucion, ALTO):
+                              cola_bloqueados, proceso_en_ejecucion, ALTO, quantum_global, quantum_transcurrido):
     titulo_listos = fuente_etiquetas.render("COLA DE LISTOS", True, COLOR_TEXTO)
     pantalla.blit(titulo_listos, (350, 25))
 
@@ -64,15 +62,17 @@ def dibujar_columna_ejecucion(pantalla, fuente_titulo, fuente_etiquetas, fuente_
     titulo_proceso = fuente_titulo.render("PROCESO EN EJECUCIÓN", True, COLOR_TEXTO)
     pantalla.blit(titulo_proceso, (410, 210))
 
-    labels_proc = ["ID", "Operación", "TME", "T.Ejecutado", "T.Restante"]
-    vals_proc = ["", "", "", "", ""]
+    labels_proc = ["ID", "Operación", "TME", "T.Ejecutado", "T.Restante", "Quantum"]
+    vals_proc = ["", "", "", "", "", ""]
+
     if proceso_en_ejecucion:
         vals_proc = [
             str(proceso_en_ejecucion.id),
             proceso_en_ejecucion.operacion,
             str(proceso_en_ejecucion.tme),
             str(proceso_en_ejecucion.tiempo_transcurrido),
-            str(proceso_en_ejecucion.tiempo_restante)
+            str(proceso_en_ejecucion.tiempo_restante),
+            f"{quantum_transcurrido} / {quantum_global} ms"
         ]
 
     y_pos = 240
@@ -85,9 +85,11 @@ def dibujar_columna_ejecucion(pantalla, fuente_titulo, fuente_etiquetas, fuente_
         y_pos += 35
 
     pantalla.blit(fuente_etiquetas.render(f"BLOQUEADOS ({len(cola_bloqueados)})", True, COLOR_TEXTO), (350, y_pos + 10))
+
     fondo_bloq = pygame.Rect(350, y_pos + 35, 350, 110)
     pygame.draw.rect(pantalla, COLOR_CAJAS, fondo_bloq)
     pygame.draw.rect(pantalla, COLOR_BORDES, fondo_bloq, 3)
+
     pantalla.blit(fuente_pequena.render("ID      TIEMPO EN BLOQUEO", True, COLOR_TEXTO_BLANCO), (360, y_pos + 40))
 
     y_bloq = y_pos + 60
@@ -99,15 +101,16 @@ def dibujar_columna_ejecucion(pantalla, fuente_titulo, fuente_etiquetas, fuente_
 
     pygame.draw.line(pantalla, COLOR_BORDES, (730, 0), (730, ALTO), 4)
 
-
 def dibujar_columna_terminados(pantalla, fuente_titulo, fuente_etiquetas, fuente_pequena, procesos_terminados,
                                reloj_global):
     titulo_final = fuente_titulo.render("PROCESOS TERMINADOS", True, COLOR_TEXTO)
     pantalla.blit(titulo_final, (780, 25))
+
     fondo_term = pygame.Rect(750, 60, 330, 480)
     pygame.draw.rect(pantalla, COLOR_CAJAS, fondo_term)
     pygame.draw.rect(pantalla, COLOR_BORDES, fondo_term, 3)
-    pantalla.blit(fuente_pequena.render("ID    OPER         RES", True, COLOR_TEXTO_BLANCO), (760, 65))  # Lote borrado
+
+    pantalla.blit(fuente_pequena.render("ID    OPER         RES", True, COLOR_TEXTO_BLANCO), (760, 65))
     pygame.draw.line(pantalla, COLOR_BORDES, (750, 85), (1080, 85), 3)
 
     y_term = 90
@@ -123,6 +126,7 @@ def dibujar_columna_terminados(pantalla, fuente_titulo, fuente_etiquetas, fuente
 
 def dibujar_reporte_final(pantalla, fuente_titulo, fuente_pequena, procesos_terminados):
     pantalla.blit(fuente_titulo.render("REPORTE FINAL DE TIEMPOS", True, COLOR_TEXTO), (50, 20))
+
     encabezado = "ID  | OPERACIÓN  | RESULTADO | TME | LLEGADA | FIN | RETORNO | RESPUESTA | ESPERA | SERVICIO"
     pantalla.blit(fuente_pequena.render(encabezado, True, (255, 255, 0)), (50, 60))
 
